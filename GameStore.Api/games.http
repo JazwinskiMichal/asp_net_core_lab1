@@ -10,3 +10,10 @@ Content-Type: application/json
   "price": 59.99,
   "releaseDate": "2017-03-03"
 }
+###
+PUT http://localhost:5063/games/5869793f-cb75-4f8b-b798-a510462f8d5d
+Content-Type: application/json
+
+{
+  "price": 9.99
+}

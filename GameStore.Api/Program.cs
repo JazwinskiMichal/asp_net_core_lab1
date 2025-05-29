@@ -36,4 +36,25 @@ app.MapPost("/games", (CreateGameDto createGameDto) =>
     );
 });
 
+// PUT /games/{id:guid}
+app.MapPut("/games/{id:guid}", (Guid id, UpdateGameDto updateGameDto) =>
+{
+    var game = games.FirstOrDefault(g => g.Id == id);
+    if (game is null)
+    {
+        return Results.NotFound();
+    }
+
+    game = game with
+    {
+        Name = updateGameDto.Name ?? game.Name,
+        Genre = updateGameDto.Genre ?? game.Genre,
+        Price = updateGameDto.Price ?? game.Price,
+        ReleaseDate = updateGameDto.ReleaseDate ?? game.ReleaseDate
+    };
+
+    games[games.FindIndex(g => g.Id == id)] = game;
+    return Results.Ok(game);
+});
+
 app.Run();
