@@ -57,4 +57,17 @@ app.MapPut("/games/{id:guid}", (Guid id, UpdateGameDto updateGameDto) =>
     return Results.Ok(game);
 });
 
+// DELETE /games/{id:guid}
+app.MapDelete("/games/{id:guid}", (Guid id) =>
+{
+    var gameIndex = games.FindIndex(g => g.Id == id);
+    if (gameIndex == -1)
+    {
+        return Results.NotFound();
+    }
+
+    games.RemoveAt(gameIndex);
+    return Results.NoContent();
+});
+
 app.Run();

@@ -17,3 +17,5 @@ Content-Type: application/json
 {
   "price": 9.99
 }
+###
+DELETE http://localhost:5063/games/fe601e74-415a-496b-bc2b-6b56fb80f241
