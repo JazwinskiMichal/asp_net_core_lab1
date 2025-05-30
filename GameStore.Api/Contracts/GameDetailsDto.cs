@@ -1,9 +1,9 @@
 namespace GameStore.Api.Contracts;
 
-public record class GameDto(
+public record class GameDetailsDto(
     Guid Id,
     string Name,
-    string Genre,
+    int GenreId,
     decimal Price,
     DateOnly ReleaseDate
 );

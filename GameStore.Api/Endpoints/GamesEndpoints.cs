@@ -1,79 +1,72 @@
 using GameStore.Api.Contracts;
+using GameStore.Api.Data;
+using GameStore.Api.Entities;
+using GameStore.Api.Mapping;
+using Microsoft.EntityFrameworkCore;
 
 namespace GameStore.Api.Endpoints;
 
 public static class GamesEndpoints
 {
-    private static readonly List<GameDto> games =
-    [
-        new GameDto(Guid.NewGuid(), "The Witcher 3", "RPG", 49.99m, new DateOnly(2015, 5, 19)),
-        new GameDto(Guid.NewGuid(), "Stardew Valley", "Simulation", 14.99m, new DateOnly(2016, 2, 26)),
-        new GameDto(Guid.NewGuid(), "Celeste", "Platformer", 19.99m, new DateOnly(2018, 1, 25))
-    ];
-
     public static void MapGamesEndpoints(this IEndpointRouteBuilder routes)
     {
         var group = routes.MapGroup("/games").WithParameterValidation();
 
         // GET /games
-        group.MapGet("/", () => Results.Ok(games));
+        group.MapGet("/", (GameStoreContext dbContext) => Results.Ok(dbContext.Games.Include(game => game.Genre).Select(g => g.ToGameSummaryDto()).AsNoTracking()));
 
         // GET /games/{id:guid}
-        group.MapGet("/{id:guid}", (Guid id) =>
+        group.MapGet("/{id:guid}", (Guid id, GameStoreContext dbContext) =>
         {
-            var game = games.FirstOrDefault(g => g.Id == id);
-            return game is not null ? Results.Ok(game) : Results.NotFound();
+            GameEntity? game = dbContext.Games.Find(id);
+
+            return game is not null ? Results.Ok(game.ToGameDetailsDto()) : Results.NotFound();
+
         }).WithName("GetGameById");
 
         // POST /games
-        group.MapPost("/", (CreateGameDto createGameDto) =>
+        group.MapPost("/", (CreateGameDto createGameDto, GameStoreContext dbContext) =>
         {
-            var newGame = new GameDto(
-                Guid.NewGuid(),
-                createGameDto.Name,
-                createGameDto.Genre,
-                createGameDto.Price,
-                createGameDto.ReleaseDate
-            );
-            games.Add(newGame);
+            GameEntity game = createGameDto.ToEntity();
+            
+            dbContext.Games.Add(game);
+            dbContext.SaveChanges();
+
             return Results.CreatedAtRoute(
                 "GetGameById",
-                new { id = newGame.Id },
-                newGame
+                new { id = game.Id },
+                game.ToGameDetailsDto()
             );
         });
 
         // PUT /games/{id:guid}
-        group.MapPut("/{id:guid}", (Guid id, UpdateGameDto updateGameDto) =>
+        group.MapPut("/{id:guid}", (Guid id, UpdateGameDto updateGameDto, GameStoreContext dbContext) =>
         {
-            var game = games.FirstOrDefault(g => g.Id == id);
-            if (game is null)
+            GameEntity? existingGame = dbContext.Games.Find(id);
+            if (existingGame is null)
             {
                 return Results.NotFound();
             }
 
-            game = game with
-            {
-                Name = updateGameDto.Name ?? game.Name,
-                Genre = updateGameDto.Genre ?? game.Genre,
-                Price = updateGameDto.Price ?? game.Price,
-                ReleaseDate = updateGameDto.ReleaseDate ?? game.ReleaseDate
-            };
+            GameEntity updatedGame = updateGameDto.ToEntity(id);
+            dbContext.Entry(existingGame).CurrentValues.SetValues(updatedGame);
+            dbContext.SaveChanges();
 
-            games[games.FindIndex(g => g.Id == id)] = game;
-            return Results.Ok(game);
+            return Results.Ok(updatedGame.ToGameDetailsDto());
         });
 
         // DELETE /games/{id:guid}
-        group.MapDelete("/{id:guid}", (Guid id) =>
+        group.MapDelete("/{id:guid}", (Guid id, GameStoreContext dbContext) =>
         {
-            var gameIndex = games.FindIndex(g => g.Id == id);
-            if (gameIndex == -1)
+            var existingGame = dbContext.Games.Find(id);
+            if (existingGame is null)
             {
                 return Results.NotFound();
             }
 
-            games.RemoveAt(gameIndex);
+            // Batch delete
+            dbContext.Games.Where(game => game.Id == id).ExecuteDelete();
+
             return Results.NoContent();
         });
     }

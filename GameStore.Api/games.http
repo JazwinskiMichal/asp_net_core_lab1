@@ -1,20 +1,25 @@
 GET http://localhost:5063/games
 ###
-GET http://localhost:5063/games/30795aae-5d29-4168-a3ea-7130bdbac13e
+GET http://localhost:5063/games/DD3E52BE-D661-41AE-8BE9-DA3A16000F85
 ###
 POST http://localhost:5063/games
 Content-Type: application/json
 
 {
-  "price": 59.99,
+  "name": "Terraria",
+  "genreId": 2,
+  "price": 19.99,
   "releaseDate": "2017-03-03"
 }
 ###
-PUT http://localhost:5063/games/5869793f-cb75-4f8b-b798-a510462f8d5d
+PUT http://localhost:5063/games/DD3E52BE-D661-41AE-8BE9-DA3A16000F85
 Content-Type: application/json
 
 {
-  "price": 9.99
+  "name": "Terraria",
+  "genreId": 2,
+  "price": 9.99,
+  "releaseDate": "2017-03-03"
 }
 ###
-DELETE http://localhost:5063/games/fe601e74-415a-496b-bc2b-6b56fb80f241
+DELETE http://localhost:5063/games/47160d1b-8341-416f-9b6f-070653f70414
