@@ -5,11 +5,11 @@ namespace GameStore.Api.Mapping;
 
 public static class GameMapping
 {
-    public static GameSumarryDto ToGameSummaryDto(this GameEntity game)
+    public static GameSummaryDto ToGameSummaryDto(this GameEntity game)
     {
         ArgumentNullException.ThrowIfNull(game);
 
-        return new GameSumarryDto(
+        return new GameSummaryDto(
             game.Id,
             game.Name,
             game.Genre!.Name,
