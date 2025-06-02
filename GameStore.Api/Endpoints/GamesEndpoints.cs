@@ -13,24 +13,29 @@ public static class GamesEndpoints
         var group = routes.MapGroup("/games").WithParameterValidation();
 
         // GET /games
-        group.MapGet("/", (GameStoreContext dbContext) => Results.Ok(dbContext.Games.Include(game => game.Genre).Select(g => g.ToGameSummaryDto()).AsNoTracking()));
+        group.MapGet("/", async (GameStoreContext dbContext) => 
+            await dbContext.Games
+                    .Include(game => game.Genre)
+                    .Select(game => game.ToGameSummaryDto())
+                    .AsNoTracking()
+                    .ToListAsync());
 
         // GET /games/{id:guid}
-        group.MapGet("/{id:guid}", (Guid id, GameStoreContext dbContext) =>
+        group.MapGet("/{id:guid}", async (Guid id, GameStoreContext dbContext) =>
         {
-            GameEntity? game = dbContext.Games.Find(id);
+            GameEntity? game = await dbContext.Games.FindAsync(id);
 
             return game is not null ? Results.Ok(game.ToGameDetailsDto()) : Results.NotFound();
 
         }).WithName("GetGameById");
 
         // POST /games
-        group.MapPost("/", (CreateGameDto createGameDto, GameStoreContext dbContext) =>
+        group.MapPost("/", async (CreateGameDto createGameDto, GameStoreContext dbContext) =>
         {
             GameEntity game = createGameDto.ToEntity();
             
             dbContext.Games.Add(game);
-            dbContext.SaveChanges();
+            await dbContext.SaveChangesAsync();
 
             return Results.CreatedAtRoute(
                 "GetGameById",
@@ -40,9 +45,9 @@ public static class GamesEndpoints
         });
 
         // PUT /games/{id:guid}
-        group.MapPut("/{id:guid}", (Guid id, UpdateGameDto updateGameDto, GameStoreContext dbContext) =>
+        group.MapPut("/{id:guid}", async (Guid id, UpdateGameDto updateGameDto, GameStoreContext dbContext) =>
         {
-            GameEntity? existingGame = dbContext.Games.Find(id);
+            GameEntity? existingGame = await dbContext.Games.FindAsync(id);
             if (existingGame is null)
             {
                 return Results.NotFound();
@@ -50,22 +55,22 @@ public static class GamesEndpoints
 
             GameEntity updatedGame = updateGameDto.ToEntity(id);
             dbContext.Entry(existingGame).CurrentValues.SetValues(updatedGame);
-            dbContext.SaveChanges();
+            await dbContext.SaveChangesAsync();
 
             return Results.Ok(updatedGame.ToGameDetailsDto());
         });
 
         // DELETE /games/{id:guid}
-        group.MapDelete("/{id:guid}", (Guid id, GameStoreContext dbContext) =>
+        group.MapDelete("/{id:guid}", async (Guid id, GameStoreContext dbContext) =>
         {
-            var existingGame = dbContext.Games.Find(id);
+            var existingGame = await dbContext.Games.FindAsync(id);
             if (existingGame is null)
             {
                 return Results.NotFound();
             }
 
             // Batch delete
-            dbContext.Games.Where(game => game.Id == id).ExecuteDelete();
+            await dbContext.Games.Where(game => game.Id == id).ExecuteDeleteAsync();
 
             return Results.NoContent();
         });
