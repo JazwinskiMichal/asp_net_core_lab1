@@ -1,11 +1,25 @@
 ﻿@page "/"
-@using Models
-@using Services
+@using GameStore.Frontend.Interfaces
+@inject ISignalRService SignalRService
+@inject GameService GameService
+@inject ILogger<Home> Logger
+@implements IAsyncDisposable
 
 <PageTitle>Game catalog</PageTitle>
 
 <div class="game-table-container">
-    <h1 class="game-table-title">Game Catalog</h1>
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="game-table-title">Game Catalog</h1>
+        
+        <!-- Connection Status Indicator -->
+        <div class="flex items-center space-x-2">
+            <div class="@GetStatusClass()"></div>
+            <span class="text-sm text-gray-600">@connectionStatus</span>
+            <button class="btn btn--sm btn--outline-primary" @onclick="RefreshConnection">
+                Refresh
+            </button>
+        </div>
+    </div>
     
     <div class="game-table-wrapper">
         <table class="game-table">
@@ -26,7 +40,14 @@
                 {
                     <tr>
                         <td colspan="6" class="game-empty-state">
-                            No games available.
+                            @if (isLoading)
+                            {
+                                <text>Loading games...</text>
+                            }
+                            else
+                            {
+                                <text>No games available.</text>
+                            }
                         </td>
                     </tr>
                 }
@@ -63,25 +84,142 @@
             </tbody>
         </table>
     </div>
+    
+    @if (lastUpdateTime.HasValue)
+    {
+        <div class="mt-4 text-sm text-gray-500">
+            Last update: @lastUpdateTime.Value.ToString("HH:mm:ss")
+        </div>
+    }
 </div>
 
 @code {
-    private List<GameSummary> games = new List<GameSummary>() {
-        new GameSummary { Id = Guid.NewGuid(), Name = "The Witcher 3", Genre = "RPG", Price = 29.99m, ReleaseDate = new DateOnly(2022, 1, 15) },
-        new GameSummary { Id = Guid.NewGuid(), Name = "Cyberpunk 2077", Genre = "Adventure", Price = 49.99m, ReleaseDate = new DateOnly(2021, 6, 20) },
-        new GameSummary { Id = Guid.NewGuid(), Name = "Elden Ring", Genre = "RPG", Price = 59.99m, ReleaseDate = new DateOnly(2020, 11, 5) }
-    };
+    private List<GameSummary> games = new();
+    private bool isLoading = true;
+    private string connectionStatus = "Disconnected";
+    private DateTime? lastUpdateTime;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Logger.LogInformation("Home component initializing...");
+        
+        // Set up event handlers
+        SignalRService.OnGamesUpdated += OnGamesUpdated;
+        SignalRService.OnConnectionStateChanged += OnConnectionStateChanged;
+
+        // Load initial data
+        await LoadGames();
+        
+        // Start SignalR connection
+        connectionStatus = "Connecting...";
+        StateHasChanged();
+        await SignalRService.StartAsync();
+    }
+
+    private async Task LoadGames()
+    {
+        try
+        {
+            isLoading = true;
+            Logger.LogInformation("Loading games...");
+            
+            games = await GameService.GetGamesAsync() ?? GetFallbackGames();
+            
+            Logger.LogInformation("Loaded {Count} games", games.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading games");
+            games = GetFallbackGames();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OnGamesUpdated(List<GameSummary> updatedGames)
+    {
+        InvokeAsync(() =>
+        {
+            Logger.LogInformation("Received {Count} updated games via SignalR", updatedGames.Count);
+            games = updatedGames;
+            lastUpdateTime = DateTime.Now;
+            StateHasChanged();
+        });
+    }
+
+    private void OnConnectionStateChanged(string status)
+    {
+        InvokeAsync(() =>
+        {
+            Logger.LogInformation("SignalR connection status changed to: {Status}", status);
+            connectionStatus = status;
+            StateHasChanged();
+        });
+    }
+
+    private async Task RefreshConnection()
+    {
+        Logger.LogInformation("Refreshing SignalR connection...");
+        connectionStatus = "Reconnecting...";
+        StateHasChanged();
+        
+        await SignalRService.StopAsync();
+        await Task.Delay(1000);
+        await SignalRService.StartAsync();
+    }
+
+    private string GetStatusClass()
+    {
+        return connectionStatus switch
+        {
+            "Connected" => "w-3 h-3 rounded-full bg-green-500",
+            "Reconnecting" or "Connecting..." => "w-3 h-3 rounded-full bg-yellow-500 animate-pulse",
+            "Disconnected" or "Failed" => "w-3 h-3 rounded-full bg-red-500",
+            _ => "w-3 h-3 rounded-full bg-gray-500"
+        };
+    }
+
+    private List<GameSummary> GetFallbackGames()
+    {
+        return new List<GameSummary>();
+    }
 
     private void EditGame(Guid id)
     {
-        // Navigate to edit page or show edit modal
-        Console.WriteLine($"Edit game: {id}");
+        Logger.LogInformation("Edit game: {GameId}", id);
     }
 
-    private void DeleteGame(Guid id)
+    private async Task DeleteGame(Guid id)
     {
-        // Show confirmation and delete game
-        games.RemoveAll(g => g.Id == id);
-        StateHasChanged();
+        try
+        {
+            var success = await GameService.DeleteGameAsync(id);
+            if (success)
+            {
+                games.RemoveAll(g => g.Id == id);
+                StateHasChanged();
+                Logger.LogInformation("Successfully deleted game {GameId}", id);
+            }
+            else
+            {
+                Logger.LogWarning("Failed to delete game {GameId}", id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting game {GameId}", id);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Logger.LogInformation("Disposing Home component...");
+        
+        SignalRService.OnGamesUpdated -= OnGamesUpdated;
+        SignalRService.OnConnectionStateChanged -= OnConnectionStateChanged;
+        await SignalRService.StopAsync();
     }
 }

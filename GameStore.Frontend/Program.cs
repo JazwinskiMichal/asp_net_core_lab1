@@ -1,25 +1,36 @@
 using GameStore.Frontend.Components;
+using GameStore.Frontend.Interfaces;
+using GameStore.Frontend.Services;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
-// Add services to the container.
-builder.Services.AddRazorComponents();
+// Register the root component
+builder.RootComponents.Add<App>("#app");
+builder.RootComponents.Add<HeadOutlet>("head::after");
 
-var app = builder.Build();
+// Configure HTTP client for general use
+builder.Services.AddScoped(sp => 
+    new HttpClient 
+    { 
+        BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
+    });
 
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+// Add named HTTP client specifically for API calls
+builder.Services.AddHttpClient("GameStoreAPI", client =>
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
-}
+    client.BaseAddress = new Uri("http://localhost:5063/"); // Your API URL
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
-//app.UseHttpsRedirection();
+// Register GameService - THIS WAS MISSING!
+builder.Services.AddScoped<GameService>();
 
-app.UseStaticFiles();
-app.UseAntiforgery();
+// Register SignalR service
+builder.Services.AddScoped<ISignalRService, SignalRService>();
 
-app.MapRazorComponents<App>();
+// Add logging
+builder.Logging.SetMinimumLevel(LogLevel.Information);
 
-app.Run();
+await builder.Build().RunAsync();

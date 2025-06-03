@@ -1,7 +1,9 @@
 using GameStore.Api.Contracts;
 using GameStore.Api.Data;
 using GameStore.Api.Entities;
+using GameStore.Api.Hubs;
 using GameStore.Api.Mapping;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace GameStore.Api.Endpoints;
@@ -16,7 +18,7 @@ public static class GamesEndpoints
             .WithOpenApi();
 
         // GET /games
-        group.MapGet("/", async (GameStoreContext dbContext) => 
+        group.MapGet("/", async (GameStoreContext dbContext) =>
             await dbContext.Games
                     .Include(game => game.Genre)
                     .Select(game => game.ToGameSummaryDto())
@@ -45,7 +47,7 @@ public static class GamesEndpoints
         group.MapPost("/", async (CreateGameDto createGameDto, GameStoreContext dbContext) =>
         {
             GameEntity game = createGameDto.ToEntity();
-            
+
             dbContext.Games.Add(game);
             await dbContext.SaveChangesAsync();
 
@@ -104,6 +106,28 @@ public static class GamesEndpoints
         .WithDescription("Deletes a game by its unique identifier")
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status404NotFound)
+        .WithOpenApi();
+        
+        group.MapPost("/trigger-update", async (IHubContext<DataUpdateHub> hubContext, GameStoreContext dbContext) =>
+        {
+            var games = await dbContext.Games
+                .Include(game => game.Genre)
+                .Select(game => game.ToGameSummaryDto())
+                .ToListAsync();
+        
+            await hubContext.Clients.All.SendAsync("DataUpdated", new
+            {
+                Type = "Games",
+                Data = games,
+                Timestamp = DateTime.UtcNow
+            });
+        
+            return Results.Ok("Update triggered");
+        })
+        .WithName("TriggerUpdate")
+        .WithSummary("Manually trigger data update notification")
+        .WithDescription("Manually triggers a data update notification to all connected clients")
+        .Produces(StatusCodes.Status200OK)
         .WithOpenApi();
     }
 }
