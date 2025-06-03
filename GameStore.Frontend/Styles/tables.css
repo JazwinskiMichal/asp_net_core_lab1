@@ -1,0 +1,79 @@
+.game-table-container {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8;
+}
+
+.game-table-title {
+  @apply text-2xl font-bold text-gray-900 mb-6;
+}
+
+.game-table-wrapper {
+  @apply overflow-hidden shadow ring-1 ring-black/5 md:rounded-lg;
+}
+
+.game-table {
+  @apply min-w-full divide-y divide-gray-300;
+}
+
+.game-table-header {
+  @apply bg-gray-50;
+}
+
+.game-table-header-cell--first {
+  @apply py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900;
+}
+
+.game-table-header-cell--regular {
+  @apply px-3 py-3.5 text-left text-sm font-semibold text-gray-900;
+}
+
+.game-table-header-cell--last {
+  @apply relative py-3.5 pl-3 pr-4 sm:pr-6;
+}
+
+.game-table-body {
+  @apply divide-y divide-gray-200 bg-white;
+}
+
+.game-table-row {
+  @apply hover:bg-gray-50 transition-colors duration-150;
+}
+
+.game-table-cell--first {
+  @apply whitespace-nowrap py-4 pl-4 pr-3 text-xs text-gray-500 font-mono;
+}
+
+.game-table-cell--regular {
+  @apply whitespace-nowrap px-3 py-4 text-sm;
+}
+
+.game-table-cell--last {
+  @apply relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6;
+}
+
+.game-name {
+  @apply font-medium text-gray-900;
+}
+
+.game-genre-badge {
+  @apply inline-flex rounded-full bg-green-100 px-2 text-xs font-semibold text-green-800;
+}
+
+.game-price {
+  @apply text-gray-900 font-semibold;
+}
+
+.game-date {
+  @apply text-gray-500;
+}
+
+.game-action-edit {
+  @apply text-indigo-600 hover:text-indigo-900 mr-4 transition-colors duration-150;
+}
+
+.game-action-delete {
+  @apply text-red-600 hover:text-red-900 transition-colors duration-150;
+}
+
+.game-empty-state {
+  @apply px-6 py-8 text-center text-gray-500;
+}

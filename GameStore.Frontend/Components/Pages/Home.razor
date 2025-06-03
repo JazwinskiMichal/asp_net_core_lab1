@@ -1,7 +1,87 @@
 ﻿@page "/"
+@using Models
+@using Services
 
-<PageTitle>Game store</PageTitle>
+<PageTitle>Game catalog</PageTitle>
 
-<h1 class="text-3xl font-bold underline">Hello, world jp1sdfsdfsdfsd00!</h1>
+<div class="game-table-container">
+    <h1 class="game-table-title">Game Catalog</h1>
+    
+    <div class="game-table-wrapper">
+        <table class="game-table">
+            <thead class="game-table-header">
+                <tr>
+                    <th class="game-table-header-cell--first">ID</th>
+                    <th class="game-table-header-cell--regular">Name</th>
+                    <th class="game-table-header-cell--regular">Genre</th>
+                    <th class="game-table-header-cell--regular">Price</th>
+                    <th class="game-table-header-cell--regular">Release Date</th>
+                    <th class="game-table-header-cell--last">
+                        <span class="sr-only">Actions</span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="game-table-body">
+                @if (games.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6" class="game-empty-state">
+                            No games available.
+                        </td>
+                    </tr>
+                }
+                @foreach (var game in games)
+                {
+                    <tr class="game-table-row">
+                        <td class="game-table-cell--first">
+                            @game.Id.ToString("N")[..8]...
+                        </td>
+                        <td class="game-table-cell--regular game-name">
+                            @game.Name
+                        </td>
+                        <td class="game-table-cell--regular">
+                            <span class="game-genre-badge">
+                                @game.Genre
+                            </span>
+                        </td>
+                        <td class="game-table-cell--regular game-price">
+                            @game.Price.ToString("C")
+                        </td>
+                        <td class="game-table-cell--regular game-date">
+                            @game.ReleaseDate.ToString("MMM dd, yyyy")
+                        </td>
+                        <td class="game-table-cell--last">
+                            <button class="game-action-edit" @onclick="() => EditGame(game.Id)">
+                                Edit
+                            </button>
+                            <button class="game-action-delete" @onclick="() => DeleteGame(game.Id)">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
 
-Welcome to your new app.
+@code {
+    private List<GameSummary> games = new List<GameSummary>() {
+        new GameSummary { Id = Guid.NewGuid(), Name = "The Witcher 3", Genre = "RPG", Price = 29.99m, ReleaseDate = new DateOnly(2022, 1, 15) },
+        new GameSummary { Id = Guid.NewGuid(), Name = "Cyberpunk 2077", Genre = "Adventure", Price = 49.99m, ReleaseDate = new DateOnly(2021, 6, 20) },
+        new GameSummary { Id = Guid.NewGuid(), Name = "Elden Ring", Genre = "RPG", Price = 59.99m, ReleaseDate = new DateOnly(2020, 11, 5) }
+    };
+
+    private void EditGame(Guid id)
+    {
+        // Navigate to edit page or show edit modal
+        Console.WriteLine($"Edit game: {id}");
+    }
+
+    private void DeleteGame(Guid id)
+    {
+        // Show confirmation and delete game
+        games.RemoveAll(g => g.Id == id);
+        StateHasChanged();
+    }
+}
