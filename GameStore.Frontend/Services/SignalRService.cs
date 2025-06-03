@@ -30,7 +30,7 @@ public class SignalRService(ILogger<SignalRService> logger, IJSRuntime jsRuntime
                 .WithUrl($"{apiUrl}/datahub", options =>
                 {
                     // WebAssembly can use WebSockets without conflicts
-                    options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets | 
+                    options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets |
                                         Microsoft.AspNetCore.Http.Connections.HttpTransportType.LongPolling;
                 })
                 .WithAutomaticReconnect([ 
